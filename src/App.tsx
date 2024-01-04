@@ -1,39 +1,41 @@
-import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 
 import { invoke } from "@tauri-apps/api";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [text, setText] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     invoke("show_main_window");
   }, []);
 
+  let generateCallback = useCallback(async () => {
+    let prompt = inputRef.current?.value;
+    if (!prompt || prompt.trim() === "") {
+      setText("Please enter a prompt");
+      return;
+    }
+    prompt = prompt.trim();
+    const r = await fetch(
+      "http://localhost:8080/api/text-completion?prompt=famous%20qoute",
+      {
+        method: "POST",
+        body: prompt,
+      }
+    );
+    const text = await r.text();
+    setText(text);
+  }, []);
+
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+        <textarea placeholder="Enter a prompt" ref={inputRef} />
+        <button onClick={generateCallback}>Generate</button>
+        <pre>{text}</pre>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
   );
 }
